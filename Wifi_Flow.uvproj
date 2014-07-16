@@ -43,14 +43,14 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>.\</OutputDirectory>
+          <OutputDirectory>.\build\</OutputDirectory>
           <OutputName>Wifi_Flow</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
-          <ListingPath>.\</ListingPath>
+          <ListingPath>.\build\</ListingPath>
           <HexFormatSelection>0</HexFormatSelection>
           <Merge32K>0</Merge32K>
           <CreateBatchFile>0</CreateBatchFile>
@@ -395,6 +395,16 @@
               <FileName>timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\lib\timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>command.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\command.c</FilePath>
+            </File>
+            <File>
+              <FileName>Soft_Uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Soft_Uart.c</FilePath>
             </File>
           </Files>
         </Group>

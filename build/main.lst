@@ -1,69 +1,141 @@
-C51 COMPILER V9.52.0.0   MAIN                                                              07/08/2014 20:40:32 PAGE 1   
+C51 COMPILER V9.52.0.0   MAIN                                                              07/16/2014 10:32:47 PAGE 1   
 
 
 C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
 OBJECT MODULE PLACED IN .\build\main.obj
-COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.exe src\main.c BROWSE INCDIR(.\lib;.\src) PRINT(.\build\*.lst) DEBUG OBJECTE
-                    -XTEND PRINT(.\build\main.lst) TABS(2) OBJECT(.\build\main.obj)
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE src\main.c BROWSE INCDIR(.\lib;.\src) DEBUG OBJECTEXTEND PRINT(.\build\m
+                    -ain.lst) TABS(2) OBJECT(.\build\main.obj)
 
 line level    source
 
    1          #include "rey_config.h"
-   2          
+   2          #define suart2huart
    3          
-   4          //global value
-   5          unsigned int systick=0;
-   6          void main(void)
-   7          {
-   8   1      
-   9   1        rey_usart_config();
-  10   1        rey_timer_config();
-  11   1        
-  12   1        Initialize_LCD();
-  13   1        ClearLine(1);
-  14   1        ClearLine(2);
-  15   1        
-  16   1        EA = 1;
-  17   1        PutString(1,1,"--INFO1:123456--");
-  18   1        PutString(2,1,"--INFO2:654321--");
-  19   1          while(1)
-  20   1          {
-  21   2              if(systick == 1000)
-  22   2              {
-  23   3                  systick = 0;
-  24   3                  P26=!P26;
-  25   3              }
-  26   2          }
-  27   1      }
-  28          
-  29          
-  30          
-  31          /********************* Timer0中断函数************************/
-  32          #ifdef USE_TIMER0
-  33          void timer0_int (void) interrupt TIMER0_VECTOR
-  34          {
-  35   1          systick++;
-  36   1      }
-  37          #endif
-  38          
-  39          /********************* Timer1中断函数************************/
-  40          #ifdef USE_TIMER1
+   4          void SendCommand(u8 *puts, u8 length);
+   5          //global value
+   6          unsigned int systick=0;
+   7          void main(void)
+   8          {
+   9   1        unsigned char i=0;
+  10   1        rey_usart_config();
+  11   1        rey_timer_config();
+  12   1        SOFT_UART_INIT();
+  13   1        
+  14   1        Initialize_LCD();
+  15   1        ClearLine(1);
+  16   1        ClearLine(2);
+  17   1        
+  18   1        P13 = 0;
+  19   1      
+  20   1        
+  21   1        EA = 1;
+  22   1        PutString(1,1,"--INFO1:123456--");
+  23   1        PutString(2,1,"--INFO2:654321--");
+  24   1        
+  25   1      //  SendCommand(start,ComanndLenth10);
+  26   1      //  SendCommand(getname,ComanndLenth10);
+  27   1      //  SendCommand(getuartmode,ComanndLenth10);
+  28   1      //  SendCommand(getdualup,ComanndLenth10);  
+  29   1      //  SendCommand(getmacaddr,ComanndLenth10); 
+  30   1          while(1)
+  31   1          {
+  32   2      // use to test soft uart send data to hard uart.  (not working!)      (内部短接硬件串口的发送和接收无效，外部
+             -跳帽短接可以收发)
+  33   2      #ifdef suart2huart
+  34   2            if (REND)       //如果接收完,把接收到的值存入接收buff
+  35   2          {
+  36   3            REND = 0;
+  37   3      //      buf[r++ & 0x0f] = RBUF;
+  38   3            TX1_write2buff(RBUF);
+  39   3          }
+  40   2      
+  41   2          if(!TING)   //发送空闲
+  42   2          {
+  43   3        
+  44   3                while(COM1.RX_Cnt != i) //有要发送的数据
+  45   3                {
+  46   4                  TBUF = RX1_Buffer[i++ &0x3f];
+  47   4                  TING = 1;
+  48   4                }
+  49   3                COM1.RX_Cnt = 0;
+  50   3                i = 0;
+  51   3          }
+  52   2      #endif
+  53   2      // use to test soft uart (sRX2sTX, already working!)
+C51 COMPILER V9.52.0.0   MAIN                                                              07/16/2014 10:32:47 PAGE 2   
+
+  54   2      #ifdef suart2suart
+                  if(REND)
+                  {
+                    REND = 0;
+                    buf[r++ & 0x0f] =RBUF;
+                  }
+                  if(!TING)
+                  {
+                    if(r != t)
+                    {
+                      TBUF = buf[t++ &0x0f];
+                      TING = 1;
+                    }
+                  }
+              #endif
+  69   2      // use to test hard uart (hRX2hTX,  already working!)
+  70   2      #ifdef huart2huart
+                  if(COM1.RX_TimeOut != 0)
+                  {
+                    if(--COM1.RX_TimeOut == 0)
+                    {
+                      if(COM1.RX_Cnt != 0)
+                      {
+                        for(i=0;i<=COM1.RX_Cnt;i++) TX1_write2buff(RX1_Buffer[i]);
+                      }
+                      COM1.RX_Cnt = 0;
+                    }
+                  }
+              #endif
+  83   2        }
+  84   1      
+  85   1      
+  86   1              
+  87   1      }
+  88          void SendCommand(u8 *puts,u8 length)
+  89          {
+  90   1            unsigned int i;
+  91   1            for (i=0; i< length;  i++)  
+  92   1              {
+  93   2                TX1_write2buff(*puts);  //遇到停止符0结束
+  94   2                puts++;
+  95   2              }
+  96   1            while(COM1.TX_Cnt != 0){;}
+  97   1      }
+  98          
+  99          
+ 100          /********************* Timer0中断函数************************/
+ 101          //#ifdef USE_TIMER0
+ 102          //void timer0_int (void) interrupt TIMER0_VECTOR
+ 103          //{
+ 104          //    systick++;
+ 105          //}
+ 106          //#endif
+ 107          
+ 108          /********************* Timer1中断函数************************/
+ 109          #ifdef USE_TIMER1
               void timer1_int (void) interrupt TIMER1_VECTOR
               {
               
               }
               #endif
 
+C51 COMPILER V9.52.0.0   MAIN                                                              07/16/2014 10:32:47 PAGE 3   
+
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     79    ----
+   CODE SIZE        =    174    ----
    CONSTANT SIZE    =     34    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      2    ----
+   DATA SIZE        =      2       7
    IDATA SIZE       =   ----    ----
-C51 COMPILER V9.52.0.0   MAIN                                                              07/08/2014 20:40:32 PAGE 2   
-
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 
